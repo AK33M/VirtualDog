@@ -14,14 +14,14 @@ describe('In the file masterController.ts', () => {
         beforeEach(() => {
             angular.mock.module('app.people');
             inject(($injector: ng.auto.IInjectorService) => {
-                $controller = $injector.get <ng.IControllerService> ('$controller');
-                $rootScope = $injector.get <ng.IRootScopeService> ('$rootScope');
+                $controller = $injector.get<ng.IControllerService>('$controller');
+                $rootScope = $injector.get<ng.IRootScopeService>('$rootScope');
                 masterControllerParams = {
                     $rootScope: $rootScope,
                     eventNames: vdog.eventNames
                 };
             });
-            sut = $controller <vdog.MasterController> ('masterController', masterControllerParams);
+            sut = $controller<vdog.MasterController>('masterController', masterControllerParams);
         });
         describe('constructor', () => {
             it('should set familiarName to Dillon', () => {
@@ -42,7 +42,7 @@ describe('In the file masterController.ts', () => {
             });
             it('should set second item actionName in masterActions to \'Feed\'', () => {
                 expect(sut.masterActions[1].actionFunc).toBeDefined('actionFunc not defined for Feed');
-                expect(sut.masterActions[1].actionFunc).not.toBeNull('actionFunc is null for Feed');                
+                expect(sut.masterActions[1].actionFunc).not.toBeNull('actionFunc is null for Feed');
             });
             it('should set second item actonFunc in masterActions', () => {
                 expect(sut.masterActions[1].actionFunc).toBeDefined('actionFunc not defined for Feed');
@@ -70,22 +70,61 @@ describe('In the file masterController.ts', () => {
                 expect(sut.masterObjects[5].name).toEqual('table scraps');
             });
         });
-        describe('throwSomething method', () => {
-            it('should broadcast the throw event name', () => {
-                pending('finish in mocking module');
+        describe("broadcast related property", () => {
+            let broadcastObject: vdog.DogObject;
+
+            beforeEach(() => {
+                broadcastObject = new vdog.DogObject("meh", false, false);
+                spyOn($rootScope, '$broadcast');
             });
-        });
-        describe('feedTheDog method', () => {
-            it('should broadcast the feed event name', () => {
-                pending('finish in mocking module');
+
+            describe('throwSomething', () => {
+                it('should broadcast the throw event name and the object thrown', () => {
+                    sut.throwSomething(broadcastObject);
+                    expect($rootScope.$broadcast).toHaveBeenCalledTimes(1);
+                    expect($rootScope.$broadcast).toHaveBeenCalledWith(vdog.eventNames.masterThrow, broadcastObject);
+                });
+            });
+            describe('feedTheDog', () => {
+                it('should broadcast the feed event name and the object thrown', () => {
+                    sut.feedTheDog(broadcastObject);
+                    expect($rootScope.$broadcast).toHaveBeenCalledTimes(1);
+                    expect($rootScope.$broadcast).toHaveBeenCalledWith(vdog.eventNames.masterFeed, broadcastObject);
+                });
+            });
+            describe("feedTheDog, when $broadcast is being spied on", () => {
+                let foodObject: vdog.DogObject;
+                let wasBroadcast: boolean;
+
+                beforeEach(() => {
+                    foodObject = new vdog.DogObject("meh", false, false);
+                    wasBroadcast = false;
+                    // spyOn($rootScope, "$broadcast");
+                    $rootScope.$on(vdog.eventNames.masterFeed, (event, args) => wasBroadcast = true);
+                });
+                describe("and there is no callThrough", () => {
+                    it("should not broadcast", () => {
+                        sut.feedTheDog(foodObject);
+                        expect($rootScope.$broadcast).toHaveBeenCalled();
+                        expect(wasBroadcast).toBeFalsy;
+                    });
+                });
+                describe("and there is a callThrough", () => {
+                    it("should broadcast", () => {
+                        (<jasmine.Spy>($rootScope.$broadcast)).and.callThrough();
+                        sut.feedTheDog(foodObject);
+                        expect($rootScope.$broadcast).toHaveBeenCalled();
+                        expect(wasBroadcast).toBeTruthy;
+                    });
+                });
             });
         });
     });
     describe('the MasterAction\'s constructor', () => {
-        let sut : vdog.MasterAction,
-        actionFunc = (o: vdog.DogObject) => {
+        let sut: vdog.MasterAction,
+            actionFunc = (o: vdog.DogObject) => {
 
-        };
+            };
         beforeEach(() => {
             sut = new vdog.MasterAction('masterActionName', actionFunc)
         });

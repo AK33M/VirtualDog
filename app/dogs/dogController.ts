@@ -193,6 +193,7 @@ namespace dogsrus.virtdog {
           blogEntry += ' Chomp... Hey it stopped squeaking, let me try again!';
         }
       }
+      return blogEntry;
     }
 
     private decapitateHandler = (event: ng.IAngularEvent) => {
@@ -239,7 +240,7 @@ namespace dogsrus.virtdog {
         this.chewObjects.push(fetchObject);
       }
       if (fetchObject.chewOn() === ChewExperience.squeaky) {
-        this.chewOnSomethingSqueaky(blogEntry, fetchObject);
+        blogEntry += this.chewOnSomethingSqueaky(blogEntry, fetchObject);
       } else {
         blogEntry += ` I gave the ${fetchObject.name} a good chew or two and dropped it.`;
       }

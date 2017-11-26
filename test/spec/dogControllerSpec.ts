@@ -23,9 +23,9 @@ describe('In the file dogController.ts', () => {
     beforeEach(() => {
       angular.mock.module('app.dog');
       inject(($injector: ng.auto.IInjectorService) => {
-        $controller = $injector.get<ng.IControllerService>('$controller');
-        $rootScope = $injector.get<ng.IRootScopeService>('$rootScope');
-        $interval = $injector.get<ng.IIntervalService>('$interval');
+        $controller = $injector.get('$controller');
+        $rootScope = $injector.get('$rootScope');
+        $interval = $injector.get('$interval');
 
         dogConstructorParams = {
           $rootScope: $rootScope,
@@ -55,7 +55,7 @@ describe('In the file dogController.ts', () => {
       dogConfig.startDog.tailStyle = 'testTailStyle';
       sut = $controller<vdog.DogController>('dogController', dogConstructorParams);
     });
-    
+
     describe('constructor', () => {
       it('should set barkSound', () => {
         expect(sut.barkSound).toEqual(dogConfig.startDog.barkSound);
@@ -198,6 +198,82 @@ describe('In the file dogController.ts', () => {
           expect(sut.blogContent).not.toContain('tilt');
           $rootScope.$broadcast(vdog.eventNames.masterFeed, foodObject);
           expect(sut.blogContent).toContain('tilt');
+        });
+      });
+    });
+    describe("masterThrow event listener", () => {
+      let throwObject: vdog.DogObject;
+      beforeEach(() => {
+        throwObject = jasmine.createSpyObj("throwObject", ["chewOn"]);
+        throwObject.name = "meh";
+        throwObject.flies = false;
+        throwObject.chewy = false;
+        (<jasmine.Spy>(throwObject.chewOn)).and.returnValue(vdog.ChewExperience.fair);
+        sut.blogContent = "";
+      });
+      it("should blog master", () => {
+        $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+        expect(sut.blogContent).toContain("master");
+      });
+      it("should blog thrown object name", () => {
+        $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+        expect(sut.blogContent).toContain(throwObject.name);
+      });
+      it("when thrown object does not fly should blog snapping", () => {
+        $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+        expect(sut.blogContent).toContain("snapping");
+      });
+      it("when thrown object flies should blog leapt", () => {
+        throwObject.flies = true;
+        $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+        expect(sut.blogContent).toContain("leapt");
+      });
+      it("when thrown object is chewy and not in chewObjects " +
+        "should add thrown object to chewObjects", () => {
+          throwObject.chewy = true;
+          sut.chewObjects = [];
+          $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+          expect(sut.chewObjects).toContain(throwObject);
+        });
+      describe("when thrown object chewOn returns squeaky", () => {
+        beforeEach(() => {
+          (<jasmine.Spy>(throwObject.chewOn)).and.returnValue(vdog.ChewExperience.squeaky);
+        });
+        it("should blog squeak", () => {
+          $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+          expect(sut.blogContent).toContain("squeak");
+        });
+        it("should call chewOn squeakyOcdChewCount+1 times", () => {
+          sut.squeakyOcdChewCount = 5;
+          $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+          expect(throwObject.chewOn).toHaveBeenCalledTimes(sut.squeakyOcdChewCount + 1);
+        });
+        it("then chewOn stops returning squeaky should blog \'try again\'", () => {
+          (<jasmine.Spy>(throwObject.chewOn)).and.returnValues(
+            vdog.ChewExperience.squeaky,
+            vdog.ChewExperience.great);
+          sut.squeakyOcdChewCount = 1;
+          $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+          expect(sut.blogContent).toContain("try again");
+        });
+      });
+      describe("masterThrow event listner not isolated", () => {
+        let throwObject: vdog.DogObject;
+        beforeEach(() => {
+          throwObject = new vdog.DogObject("meh", false, false, vdog.ChewExperience.squeaky);
+          sut.blogContent = "";
+        });
+        it("when thrown object chewOn returns squeaky should blog squeaky", () => {
+          $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+          expect(sut.blogContent).toContain("squeak");
+        });
+        it("when thrown object is chewy and chewon returns fair should not blog squeak", () => {
+          throwObject = new vdog.DogObject("meh", true, false, vdog.ChewExperience.fair);
+          throwObject.chewLimit = 2;
+          throwObject.state = vdog.ObjectState.veryChewed;
+          sut.squeakyOcdChewCount = 5;
+          $rootScope.$broadcast(vdog.eventNames.masterThrow, throwObject);
+          expect(sut.blogContent).not.toContain("squeak");
         });
       });
     });
